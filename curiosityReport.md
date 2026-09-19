@@ -41,3 +41,57 @@ For my experiment, I built a simple Docker image using Node.js and then scanned 
 I first used docker scout quickview to get an overview of the image and its security status. I then used docker scout cves to see the specific vulnerabilities that were found.
 
 This experiment helped me see how Docker Scout can identify security issues inside an image before it is deployed.
+
+## Reproduction Instructions
+
+To reproduce my experiment, I first installed and opened Docker Desktop.
+
+I verified that Docker and Docker Scout were available by running:
+
+```bash
+docker --version
+docker scout version
+```
+
+If needed, I signed into Docker using:
+
+```bash
+docker login
+```
+
+Next, I created a file named `Dockerfile` in the root of my project with the following contents:
+
+```dockerfile
+FROM node:22
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+CMD ["npm", "run", "dev"]
+```
+
+I then built the Docker image with:
+
+```bash
+docker build -t curiosity-docker .
+```
+
+After the image finished building, I used Docker Scout to get an overview of the image and its security status:
+
+```bash
+docker scout quickview curiosity-docker
+```
+
+Finally, I used the following command to display the known vulnerabilities found in the image:
+
+```bash
+docker scout cves curiosity-docker
+```
+
+Following these steps allows another user with Docker Desktop and Docker Scout installed to build the same type of image and reproduce my vulnerability scan.
+
+The exact number of vulnerabilities may change over time because vulnerability databases are updated as new security issues are discovered.
