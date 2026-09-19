@@ -133,3 +133,31 @@ Docker Scout will display the known CVEs associated with packages found inside t
 I recorded the vulnerability information reported by `quickview` and then used the `cves` command to examine the individual vulnerabilities in more detail.
 
 Someone following these instructions should be able to build the same Docker image and perform the same Docker Scout scan. The exact number of vulnerabilities may change over time as new vulnerabilities are discovered and vulnerability databases are updated.
+
+### Dockerfile
+
+I created a file named `Dockerfile` in the root of the JWT Pizza project with the following contents:
+
+```dockerfile
+FROM node:22
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci
+
+COPY . .
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+```
+
+I then built and scanned the image using:
+
+```bash
+docker build -t curiosity-docker .
+docker scout quickview curiosity-docker
+docker scout cves curiosity-docker
+```
