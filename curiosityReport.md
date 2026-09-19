@@ -42,24 +42,45 @@ I first used docker scout quickview to get an overview of the image and its secu
 
 This experiment helped me see how Docker Scout can identify security issues inside an image before it is deployed.
 
-## Reproduction Instructions
+## Detailed Reproduction Instructions
 
-To reproduce my experiment, I first installed and opened Docker Desktop.
+The following steps can be used to reproduce my Docker Scout experiment.
 
-I verified that Docker and Docker Scout were available by running:
+### Prerequisites
+
+Before starting, you will need:
+
+- Docker Desktop installed and running
+- Docker Scout available through Docker Desktop
+- A terminal
+- The JWT Pizza project downloaded or cloned to your computer
+
+You can verify that Docker and Docker Scout are available by running:
 
 ```bash
 docker --version
 docker scout version
 ```
 
-If needed, I signed into Docker using:
+If Docker Scout requires authentication, sign in with:
 
 ```bash
 docker login
 ```
 
-Next, I created a file named `Dockerfile` in the root of my project with the following contents:
+### 1. Open the JWT Pizza Project
+
+In the terminal, navigate to the root directory of the JWT Pizza project:
+
+```bash
+cd jwt-pizza
+```
+
+### 2. Create the Dockerfile
+
+Create a file named `Dockerfile` in the root of the project.
+
+Add the following code:
 
 ```dockerfile
 FROM node:22
@@ -67,6 +88,7 @@ FROM node:22
 WORKDIR /app
 
 COPY package*.json ./
+
 RUN npm ci
 
 COPY . .
@@ -74,24 +96,40 @@ COPY . .
 CMD ["npm", "run", "dev"]
 ```
 
-I then built the Docker image with:
+This Dockerfile uses Node.js as the base image, installs the project's dependencies, and copies the JWT Pizza project into the Docker image.
+
+### 3. Build the Docker Image
+
+From the same directory as the Dockerfile, run:
 
 ```bash
 docker build -t curiosity-docker .
 ```
 
-After the image finished building, I used Docker Scout to get an overview of the image and its security status:
+The `-t curiosity-docker` option gives the image the name `curiosity-docker`.
+
+### 4. Run Docker Scout Quickview
+
+After the image finishes building, run:
 
 ```bash
 docker scout quickview curiosity-docker
 ```
 
-Finally, I used the following command to display the known vulnerabilities found in the image:
+This displays an overview of the image, including information about packages and known vulnerabilities.
+
+### 5. View the Vulnerabilities
+
+To see more detailed information about the vulnerabilities Docker Scout found, run:
 
 ```bash
 docker scout cves curiosity-docker
 ```
 
-Following these steps allows another user with Docker Desktop and Docker Scout installed to build the same type of image and reproduce my vulnerability scan.
+Docker Scout will display the known CVEs associated with packages found inside the image.
 
-The exact number of vulnerabilities may change over time because vulnerability databases are updated as new security issues are discovered.
+### 6. Compare the Results
+
+I recorded the vulnerability information reported by `quickview` and then used the `cves` command to examine the individual vulnerabilities in more detail.
+
+Someone following these instructions should be able to build the same Docker image and perform the same Docker Scout scan. The exact number of vulnerabilities may change over time as new vulnerabilities are discovered and vulnerability databases are updated.
