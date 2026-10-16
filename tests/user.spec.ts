@@ -95,7 +95,6 @@ test('updateUserEmail', async ({ page }) => {
   await expect(page.getByRole('main')).toContainText(newEmail);
 });
 
-
 test('updateUserPassword', async ({ page }) => {
   const email = `password${Date.now()}@jwt.com`;
   const oldPassword = 'diner';
