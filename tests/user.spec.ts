@@ -94,3 +94,47 @@ test('updateUserEmail', async ({ page }) => {
 
   await expect(page.getByRole('main')).toContainText(newEmail);
 });
+
+
+test('updateUserPassword', async ({ page }) => {
+  const email = `password${Date.now()}@jwt.com`;
+  const oldPassword = 'diner';
+  const newPassword = 'newDiner123!';
+
+  await page.goto('/');
+
+  // Register a new user
+  await page.getByRole('link', { name: 'Register' }).click();
+  await page.getByRole('textbox', { name: 'Full name' })
+    .fill('password tester');
+  await page.getByRole('textbox', { name: 'Email address' })
+    .fill(email);
+  await page.getByRole('textbox', { name: 'Password' })
+    .fill(oldPassword);
+  await page.getByRole('button', { name: 'Register' }).click();
+
+  // Open the diner dashboard
+  await page.getByRole('link', { name: 'pt' }).click();
+
+  // Change the password
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await page.locator('#edit-password').fill(newPassword);
+  await page.getByRole('button', { name: 'Update' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+
+  // Log out and log back in with new password
+  await page.getByRole('link', { name: 'Logout' }).click();
+  await page.getByRole('link', { name: 'Login' }).click();
+
+  await page.getByRole('textbox', { name: 'Email address' })
+    .fill(email);
+  await page.getByRole('textbox', { name: 'Password' })
+    .fill(newPassword);
+  await page.getByRole('button', { name: 'Login' }).click();
+
+  // Verify the account is accessible
+  await page.getByRole('link', { name: 'pt' }).click();
+  await expect(page.getByRole('main'))
+    .toContainText('password tester');
+});
+
