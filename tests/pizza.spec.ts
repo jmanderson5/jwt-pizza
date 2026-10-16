@@ -321,3 +321,65 @@ test('register a new user with mocked API', async ({ page }) => {
     () => page.evaluate(() => localStorage.getItem('token'))
   ).toBe('registration-test-token');
 });
+
+test('franchise dashboard displays stores', async ({ page }) => {
+  const user = {
+    id: '5',
+    name: 'Franchise Owner',
+    email: 'owner@jwt.com',
+    roles: [{ role: 'franchisee', objectId: '2' }],
+  };
+
+  // Mock the logged-in user
+  await page.route('**/api/user/me', async (route) => {
+    await route.fulfill({ json: user });
+  });
+
+  // Mock the franchise belonging to the user
+  await page.route('**/api/franchise/5', async (route) => {
+    expect(route.request().method()).toBe('GET');
+
+    await route.fulfill({
+      json: [
+        {
+          id: '2',
+          name: 'LotaPizza',
+          stores: [
+            {
+              id: '4',
+              name: 'Lehi',
+              totalRevenue: 100,
+            },
+            {
+              id: '5',
+              name: 'Springville',
+              totalRevenue: 200,
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  // Set up the authenticated session
+  await page.addInitScript(() => {
+    localStorage.setItem('token', 'mock-franchise-token');
+  });
+
+  // Open the franchise dashboard
+  await page.goto('/franchise-dashboard');
+
+  // Verify the franchise is displayed
+  await expect(
+    page.getByText('LotaPizza')
+  ).toBeVisible();
+
+  // Verify the store information
+  await expect(page.locator('tbody')).toContainText('Lehi');
+  await expect(page.locator('tbody')).toContainText('Springville');
+
+  // Verify the create-store button exists
+  await expect(
+    page.getByRole('button', { name: 'Create store' })
+  ).toBeVisible();
+});
