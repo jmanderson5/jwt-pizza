@@ -383,3 +383,72 @@ test('franchise dashboard displays stores', async ({ page }) => {
     page.getByRole('button', { name: 'Create store' })
   ).toBeVisible();
 });
+
+test('franchise owner creates a store', async ({ page }) => {
+  const user = {
+    id: '5',
+    name: 'Franchise Owner',
+    email: 'owner@jwt.com',
+    roles: [{ role: 'franchisee', objectId: '2' }],
+  };
+
+  const franchise = {
+    id: '2',
+    name: 'LotaPizza',
+    stores: [{ id: '4', name: 'Lehi', totalRevenue: 100 }],
+  };
+
+  await page.route('**/api/user/me', async (route) => {
+    await route.fulfill({ json: user });
+  });
+
+  await page.route('**/api/franchise/5', async (route) => {
+    await route.fulfill({ json: [franchise] });
+  });
+
+  // Mock store creation
+  await page.route('**/api/franchise/2/store', async (route) => {
+    expect(route.request().method()).toBe('POST');
+
+    expect(route.request().postDataJSON()).toMatchObject({
+      name: 'Provo',
+    });
+
+    // Include the new store in subsequent dashboard requests
+    franchise.stores.push({
+      id: '6',
+      name: 'Provo',
+      totalRevenue: 0,
+    });
+
+    await route.fulfill({
+      json: {
+        id: '6',
+        name: 'Provo',
+      },
+    });
+  });
+
+  await page.addInitScript(() => {
+    localStorage.setItem('token', 'mock-franchise-token');
+  });
+
+  await page.goto('/franchise-dashboard');
+
+  await expect(page.getByText('LotaPizza')).toBeVisible();
+
+  // Open store creation page
+  await page.getByRole('button', { name: 'Create store' }).click();
+
+  await expect(
+    page.getByText('Create store')
+  ).toBeVisible();
+
+  // Enter store information
+  await page.getByPlaceholder('store name').fill('Provo');
+
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+  // Verify the new store appears
+  await expect(page.locator('tbody')).toContainText('Provo');
+});
