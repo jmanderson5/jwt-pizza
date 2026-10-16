@@ -528,3 +528,83 @@ test('diner dashboard displays order history', async ({ page }) => {
   await expect(page.locator('tbody')).toContainText('0.008');
   await expect(page.locator('tbody')).toContainText('2026-10-16');
 });
+
+test('admin creates a new franchise', async ({ page }) => {
+  const admin = {
+    id: '1',
+    name: 'Pizza Admin',
+    email: 'admin@jwt.com',
+    roles: [{ role: 'admin' }],
+  };
+
+  const franchises = [
+    {
+      id: '2',
+      name: 'LotaPizza',
+      admins: [{ name: 'Franchise Owner', email: 'owner@jwt.com' }],
+      stores: [{ id: '4', name: 'Lehi', totalRevenue: 100 }],
+    },
+  ];
+
+  // Mock authenticated admin
+  await page.route('**/api/user/me', async (route) => {
+    await route.fulfill({ json: admin });
+  });
+
+  // Mock franchise listing and creation
+  await page.route(/\/api\/franchise(\?.*)?$/, async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        json: { franchises, more: false },
+      });
+    } else if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON();
+
+      expect(body).toMatchObject({
+        name: 'Provo Pizza',
+        admins: [{ email: 'owner@jwt.com' }],
+      });
+
+      franchises.push({
+        id: '3',
+        name: body.name,
+        admins: [{ name: 'Franchise Owner', email: 'owner@jwt.com' }],
+        stores: [],
+      });
+
+      await route.fulfill({
+        json: franchises[franchises.length - 1],
+      });
+    }
+  });
+
+  await page.addInitScript(() => {
+    localStorage.setItem('token', 'mock-admin-token');
+  });
+
+  // Open admin dashboard
+  await page.goto('/admin-dashboard');
+
+  await expect(
+    page.getByText("Mama Ricci's kitchen")
+  ).toBeVisible();
+
+  await expect(page.getByText('LotaPizza')).toBeVisible();
+
+  // Open franchise creation
+  await page.getByRole('button', { name: 'Add Franchise' }).click();
+
+  await expect(
+    page.getByText('Want to create franchise?')
+  ).toBeVisible();
+
+  // Complete form
+  await page.getByPlaceholder('franchise name').fill('Provo Pizza');
+  await page.getByPlaceholder('franchisee admin email')
+    .fill('owner@jwt.com');
+
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+  // Verify dashboard updates
+  await expect(page.getByText('Provo Pizza')).toBeVisible();
+});
