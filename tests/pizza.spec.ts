@@ -299,7 +299,7 @@ test('register a new user with mocked API', async ({ page }) => {
   await page.goto('/login');
 
   // Follow the registration link
-  await page.getByText('Register', { exact: true }).click();
+  await page.getByRole('link', { name: 'Register' }).click();
 
   await expect(
     page.getByText('Welcome to the party')
