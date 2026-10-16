@@ -142,3 +142,182 @@ test('select pizzas and proceed to checkout', async ({ page }) => {
     page.getByPlaceholder('Email address')
   ).toBeVisible();
 });
+
+
+test('complete pizza purchase with mocked backend', async ({ page }) => {
+  const user = {
+    id: '3',
+    name: 'Kai Chen',
+    email: 'd@jwt.com',
+    roles: [{ role: 'diner' }],
+  };
+
+  // Mock the pizza menu
+  await page.route('**/api/order/menu', async (route) => {
+    await route.fulfill({
+      json: [
+        {
+          id: '1',
+          title: 'Veggie',
+          image: 'pizza1.png',
+          price: 0.0038,
+          description: 'A garden of delight',
+        },
+        {
+          id: '2',
+          title: 'Pepperoni',
+          image: 'pizza2.png',
+          price: 0.0042,
+          description: 'Spicy treat',
+        },
+      ],
+    });
+  });
+
+  // Mock available stores
+  await page.route('**/api/franchise?*', async (route) => {
+    await route.fulfill({
+      json: {
+        franchises: [
+          {
+            id: '2',
+            name: 'LotaPizza',
+            stores: [{ id: '4', name: 'Lehi' }],
+          },
+        ],
+        more: false,
+      },
+    });
+  });
+
+  // Mock authentication
+  await page.route('**/api/auth', async (route) => {
+    expect(route.request().method()).toBe('PUT');
+    expect(route.request().postDataJSON()).toMatchObject({
+      email: 'd@jwt.com',
+      password: 'a',
+    });
+
+    await route.fulfill({
+      json: { user, token: 'abcdef' },
+    });
+  });
+
+  // Mock current user
+  await page.route('**/api/user/me', async (route) => {
+    await route.fulfill({ json: user });
+  });
+
+  // Mock pizza order submission
+  await page.route('**/api/order', async (route) => {
+    expect(route.request().method()).toBe('POST');
+
+    const order = route.request().postDataJSON();
+
+    expect(order.items).toHaveLength(2);
+    expect(order.storeId).toBe('4');
+
+    await route.fulfill({
+      json: {
+        order: { ...order, id: '23' },
+        jwt: 'test-pizza-jwt',
+      },
+    });
+  });
+
+  // Start shopping
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Order now' }).click();
+
+  // Select store and pizzas
+  await page.getByRole('combobox').selectOption('4');
+  await page.getByRole('button', { name: /Veggie/ }).click();
+  await page.getByRole('button', { name: /Pepperoni/ }).click();
+
+  await expect(
+    page.getByText('Selected pizzas: 2')
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: 'Checkout' }).click();
+
+  // Login during checkout
+  await page.getByPlaceholder('Email address').fill('d@jwt.com');
+  await page.getByPlaceholder('Password').fill('a');
+  await page.getByRole('button', { name: 'Login' }).click();
+
+  // Confirm order
+  await expect(
+    page.getByText('Send me those 2 pizzas right now!')
+  ).toBeVisible();
+
+  await expect(page.locator('tbody')).toContainText('Veggie');
+  await expect(page.locator('tbody')).toContainText('Pepperoni');
+
+  // Pay for the order
+  await page.getByRole('button', { name: 'Pay now' }).click();
+
+  // Verify delivery confirmation
+  await expect(
+    page.getByText('Here is your JWT Pizza!')
+  ).toBeVisible();
+
+  await expect(page.getByText('test-pizza-jwt')).toBeVisible();
+});
+
+
+test('register a new user with mocked API', async ({ page }) => {
+  const newUser = {
+    id: '10',
+    name: 'Test User',
+    email: 'test@example.com',
+    roles: [{ role: 'diner' }],
+  };
+
+  await page.route('**/api/auth', async (route) => {
+    expect(route.request().method()).toBe('POST');
+
+    expect(route.request().postDataJSON()).toMatchObject({
+      name: 'Test User',
+      email: 'test@example.com',
+      password: 'password123',
+    });
+
+    await route.fulfill({
+      status: 200,
+      json: {
+        user: newUser,
+        token: 'registration-test-token',
+      },
+    });
+  });
+
+  await page.route('**/api/user/me', async (route) => {
+    await route.fulfill({ json: newUser });
+  });
+
+  // Begin on the login page
+  await page.goto('/login');
+
+  // Follow the registration link
+  await page.getByText('Register', { exact: true }).click();
+
+  await expect(
+    page.getByText('Welcome to the party')
+  ).toBeVisible();
+
+  // Complete registration
+  await page.getByPlaceholder('Full name').fill('Test User');
+  await page.getByPlaceholder('Email address').fill('test@example.com');
+  await page.getByPlaceholder('Password').fill('password123');
+
+  await page.getByRole('button', { name: 'Register' }).click();
+
+  // Verify authentication
+  await expect(
+    page.getByRole('link', { name: 'TU' })
+  ).toBeVisible();
+
+  await expect.poll(
+    () => page.evaluate(() => localStorage.getItem('token'))
+  ).toBe('registration-test-token');
+});
