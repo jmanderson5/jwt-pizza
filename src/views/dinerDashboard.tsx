@@ -150,31 +150,50 @@ export default function DinerDashboard(props: Props) {
                 <CloseIcon />
               </button>
             </div>
-   
-            <div className="my-4 text-lg text-start grid grid-cols-5 gap-2 items-center">
-              <div className="font-semibold">name:</div>
-              <input
-                type="text"
-                className="col-span-4 border border-gray-300 rounded-md p-1"
-                defaultValue={user.name}
-                ref={nameRef}
-              />
 
-              <div className="font-semibold">email:</div>
-              <input
-                type="email"
-                className="col-span-4 border border-gray-300 rounded-md p-1"
-                defaultValue={user.email}
-                ref={emailRef}
-              />
+            <div className="flex flex-col gap-5 px-4 py-5">
 
-              <div className="font-semibold">password:</div>
-              <input
-                type="password"
-                className="col-span-4 border border-gray-300 rounded-md p-1"
-                defaultValue=""
-                ref={passwordRef}
-              />
+              <div className="flex flex-col gap-2">
+                <label htmlFor="edit-name" className="text-sm font-semibold text-gray-700">
+                  Name
+                </label>
+                <input
+                  id="edit-name"
+                  type="text"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  defaultValue={user.name}
+                  placeholder="Enter your full name"
+                  ref={nameRef}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="edit-email" className="text-sm font-semibold text-gray-700">
+                  Email
+                </label>
+                <input
+                  id="edit-email"
+                  type="email"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  defaultValue={user.email}
+                  placeholder="Enter your email address"
+                  ref={emailRef}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="edit-password" className="text-sm font-semibold text-gray-700">
+                  Password
+                </label>
+                <input
+                  id="edit-password"
+                  type="password"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  placeholder="Enter a new password"
+                  ref={passwordRef}
+                />
+              </div>
+
             </div>
 
             <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t bg-slate-200 rounded-b-xl">
