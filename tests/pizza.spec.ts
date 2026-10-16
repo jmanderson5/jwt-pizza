@@ -452,3 +452,79 @@ test('franchise owner creates a store', async ({ page }) => {
   // Verify the new store appears
   await expect(page.locator('tbody')).toContainText('Provo');
 });
+
+test('diner dashboard displays order history', async ({ page }) => {
+  const user = {
+    id: '3',
+    name: 'Kai Chen',
+    email: 'd@jwt.com',
+    roles: [{ role: 'diner' }],
+  };
+
+  // Mock the authenticated user
+  await page.route('**/api/user/me', async (route) => {
+    expect(route.request().method()).toBe('GET');
+    await route.fulfill({ json: user });
+  });
+
+  // Mock order history
+  await page.route('**/api/order', async (route) => {
+    expect(route.request().method()).toBe('GET');
+
+    await route.fulfill({
+      json: {
+        dinerId: '3',
+        orders: [
+          {
+            id: '42',
+            franchiseId: '2',
+            storeId: '4',
+            date: '2026-10-16',
+            items: [
+              {
+                menuId: '1',
+                description: 'Veggie',
+                price: 0.0038,
+              },
+              {
+                menuId: '2',
+                description: 'Pepperoni',
+                price: 0.0042,
+              },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  // Simulate an authenticated session
+  await page.addInitScript(() => {
+    localStorage.setItem('token', 'mock-diner-token');
+  });
+
+  await page.goto('/diner-dashboard');
+
+  // Verify dashboard loads
+  await expect(
+    page.getByText('Your pizza kitchen')
+  ).toBeVisible();
+
+  // Verify user information
+  await expect(
+    page.getByText('Kai Chen')
+  ).toBeVisible();
+
+  await expect(
+    page.getByText('d@jwt.com')
+  ).toBeVisible();
+
+  // Verify order history
+  await expect(
+    page.getByText('Here is your history of all the good times.')
+  ).toBeVisible();
+
+  await expect(page.locator('tbody')).toContainText('42');
+  await expect(page.locator('tbody')).toContainText('0.008');
+  await expect(page.locator('tbody')).toContainText('2026-10-16');
+});
