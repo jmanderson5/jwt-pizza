@@ -8,6 +8,55 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    name: Playwright UI Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24.x'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run UI tests with coverage
+        run: npm run test:coverage
+
+      - name: Update coverage badge
+        env:
+          NET_ID: ${{ secrets.NET_ID }}
+          FACTORY_API_KEY: ${{ secrets.FACTORY_API_KEY }}
+        run: |
+          coverage=$(jq -r '.total.lines.pct' coverage/coverage-summary.json)
+
+          if awk "BEGIN {exit !($coverage < 80)}"; then
+            color=red
+          else
+            color=green
+          fi
+
+          result=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -X POST \
+            --get \
+            --data-urlencode "label=Coverage" \
+            --data-urlencode "value=${coverage}%" \
+            --data-urlencode "color=$color" \
+            -H "authorization: bearer $FACTORY_API_KEY" \
+            "https://pizza-factory.cs329.click/api/badge/$NET_ID/jwtpizzacoverage")
+
+          if [ "$result" != "200" ]; then
+            echo "Badge generation failed: HTTP $result"
+            exit 1
+          fi
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -40,7 +89,7 @@ jobs:
           path: dist/
 
   deploy:
-    needs: build
+    needs: [build, test]
     permissions:
       pages: write
       id-token: write
