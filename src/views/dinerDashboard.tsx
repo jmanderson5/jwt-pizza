@@ -159,7 +159,7 @@ export default function DinerDashboard(props: Props) {
                 className="flex justify-center items-center size-7 text-sm font-semibold rounded-full border border-transparent text-gray-800 hover:bg-gray-100"
                 data-hs-overlay="#hs-jwt-modal"
               >
-                <CloseIcon />
+                <CloseIcon className="" />
               </button>
             </div>
 
