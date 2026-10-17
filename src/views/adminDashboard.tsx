@@ -25,6 +25,7 @@ export default function AdminDashboard(props: Props) {
   const [userSearch, setUserSearch] = React.useState('');
   const [userError, setUserError] = React.useState('');
   const [usersLoading, setUsersLoading] = React.useState(false);
+  const [deletingUserId, setDeletingUserId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     (async () => {
@@ -85,6 +86,48 @@ export default function AdminDashboard(props: Props) {
 
   async function filterFranchises() {
     setFranchiseList(await pizzaService.getFranchises(franchisePage, 10, `*${filterFranchiseRef.current?.value}*`));
+  }
+
+  async function deleteUser(user: User) {
+    if (!user.id) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${user.name}? This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setDeletingUserId(user.id);
+    setUserError('');
+
+    try {
+      await pizzaService.deleteUser(user.id);
+
+      // Remove the deleted user from the visible list.
+      setUserList((current) => ({
+        ...current,
+        users: current.users.filter((u) => u.id !== user.id),
+      }));
+
+      // Reload the current page to maintain pagination.
+      const result = await pizzaService.listUsers(
+        userPage,
+        10,
+        userFilter
+      );
+
+      // If this was the last user on a later page,
+      // return to the previous page.
+      if (result.users.length === 0 && userPage > 1) {
+        setUserPage(userPage - 1);
+      } else {
+        setUserList(result);
+      }
+    } catch (error) {
+      setUserError('Unable to delete user. Please try again.');
+    } finally {
+      setDeletingUserId(null);
+    }
   }
 
   let response = <NotFound />;
@@ -244,11 +287,19 @@ export default function AdminDashboard(props: Props) {
                     <td className="px-5 py-3">
                       <button
                         type="button"
-                        disabled
-                        className="rounded-lg border border-orange-400 px-3 py-1 text-orange-600 disabled:opacity-50"
-                        title="Delete will be implemented in Step 4"
+                        disabled={
+                          deletingUserId !== null ||
+                          user.id === props.user?.id
+                        }
+                        onClick={() => deleteUser(user)}
+                        className="rounded-lg border border-orange-400 px-3 py-1 text-orange-600 hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={
+                          user.id === props.user?.id
+                            ? 'You cannot delete your own account'
+                            : `Delete ${user.name}`
+                        }
                       >
-                        Delete
+                        {deletingUserId === user.id ? 'Deleting...' : 'Delete'}
                       </button>
                     </td>
                   </tr>

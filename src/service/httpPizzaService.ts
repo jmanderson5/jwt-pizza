@@ -138,6 +138,13 @@ class HttpPizzaService implements PizzaService {
       `/api/user?page=${page}&limit=${limit}&name=${encodeURIComponent(nameFilter)}`
     );
   }
+
+  async deleteUser(userId: string): Promise<void> {
+    await this.callEndpoint(
+      `/api/user/${encodeURIComponent(userId)}`,
+      'DELETE'
+    );
+  }
 }
 
 const httpPizzaService = new HttpPizzaService();
